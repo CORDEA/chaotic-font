@@ -1,4 +1,4 @@
-const {load, Font} = require('opentype.js');
+const {load, Font, Glyph} = require('opentype.js');
 
 function randomizedIndices(length) {
     const result = [];
@@ -18,7 +18,14 @@ function randomize(glyphs) {
     for (let i = 0; i < glyphs.length; i++) {
         const source = glyphs.get(i);
         const r = glyphs.get(indices[i]);
-        result.push(source);
+        result.push(
+            new Glyph({
+                name: source.name,
+                unicode: source.unicode,
+                path: r.path,
+                advanceWidth: r.advanceWidth
+            })
+        );
     }
     return result;
 }
