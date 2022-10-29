@@ -1,4 +1,5 @@
 const {load, Font, Glyph} = require('opentype.js');
+const {writeFile} = require('fs/promises');
 
 class RandomizedGlyphs {
     constructor(glyphs, map) {
@@ -8,6 +9,14 @@ class RandomizedGlyphs {
 }
 
 class GlyphMap extends Map {
+    forJson() {
+        return {
+            'glyphs': Array.from(this.entries()).map((e) => ({
+                'from': e[0],
+                'to': e[1]
+            }))
+        }
+    }
 }
 
 function randomizedIndices(length) {
@@ -54,4 +63,7 @@ function randomize(glyphs) {
         glyphs: glyphs.glyphs
     });
     font.download();
+
+    const json = JSON.stringify(glyphs.map.forJson());
+    await writeFile('glyphs.json', json);
 })();
