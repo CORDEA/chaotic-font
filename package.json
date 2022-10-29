@@ -2,8 +2,14 @@
   "name": "chaotic-font",
   "version": "1.0.0",
   "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "repository": "git@github.com:CORDEA/chaotic-font.git",
   "author": "Yoshihiro Tanaka <contact@cordea.jp>",
   "license": "Apache-2.0",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "opentype.js": "^1.3.4"
+  }
 }
