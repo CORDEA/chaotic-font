@@ -1,4 +1,4 @@
-const {load} = require('opentype.js');
+const {load, Font} = require('opentype.js');
 
 function randomizedIndices(length) {
     const result = [];
@@ -26,4 +26,13 @@ function randomize(glyphs) {
 (async function () {
     const source = await load('font.ttf');
     const glyphs = randomize(source.glyphs);
+    const font = new Font({
+        familyName: source.names.fontFamily.en,
+        styleName: source.names.fontSubfamily.en,
+        unitsPerEm: source.unitsPerEm,
+        ascender: source.ascender,
+        descender: source.descender,
+        glyphs: glyphs
+    });
+    font.download();
 })();
