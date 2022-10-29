@@ -1,5 +1,15 @@
 const {load, Font, Glyph} = require('opentype.js');
 
+class RandomizedGlyphs {
+    constructor(glyphs, map) {
+        this.glyphs = glyphs;
+        this.map = map;
+    }
+}
+
+class GlyphMap extends Map {
+}
+
 function randomizedIndices(length) {
     const result = [];
     while (result.length < length) {
@@ -15,6 +25,7 @@ function randomizedIndices(length) {
 function randomize(glyphs) {
     const indices = randomizedIndices(glyphs.length);
     const result = [];
+    const map = new GlyphMap();
     for (let i = 0; i < glyphs.length; i++) {
         const source = glyphs.get(i);
         const r = glyphs.get(indices[i]);
@@ -26,8 +37,9 @@ function randomize(glyphs) {
                 advanceWidth: r.advanceWidth
             })
         );
+        map.set(source.name, r.name);
     }
-    return result;
+    return new RandomizedGlyphs(result, map);
 }
 
 (async function () {
@@ -39,7 +51,7 @@ function randomize(glyphs) {
         unitsPerEm: source.unitsPerEm,
         ascender: source.ascender,
         descender: source.descender,
-        glyphs: glyphs
+        glyphs: glyphs.glyphs
     });
     font.download();
 })();
