@@ -1,5 +1,6 @@
 const {load, Font, Glyph} = require('opentype.js');
 const {writeFile} = require('fs/promises');
+const yargs = require('yargs');
 
 class RandomizedGlyphs {
     constructor(glyphs, map) {
@@ -52,18 +53,44 @@ function randomize(glyphs) {
 }
 
 (async function () {
-    const source = await load('font.ttf');
-    const glyphs = randomize(source.glyphs);
-    const font = new Font({
-        familyName: source.names.fontFamily.en,
-        styleName: source.names.fontSubfamily.en,
-        unitsPerEm: source.unitsPerEm,
-        ascender: source.ascender,
-        descender: source.descender,
-        glyphs: glyphs.glyphs
-    });
-    font.download();
+    const parser = yargs
+        .usage('$0 <command> <font> [args]')
+        .command('random <font>', 'Generate a randomized font', function (yargs) {
+            return yargs
+                .positional('font', {
+                    type: 'string'
+                });
+        })
+        .command('ascii <font>', 'Generate a font with randomized alphabet', function (yargs) {
+            return yargs
+                .option('char', {
+                    alias: 'c'
+                })
+                .positional('font', {
+                    type: 'string'
+                });
+        })
+        .help();
+    const argv = parser.argv;
 
-    const json = JSON.stringify(glyphs.map.forJson());
-    await writeFile('glyphs.json', json);
+    if (!argv.font) {
+        parser.showHelp();
+        return;
+    }
+
+    const source = await load(argv.font);
+    if (argv._.includes('random')) {
+        const glyphs = randomize(source.glyphs);
+        const font = new Font({
+            familyName: source.names.fontFamily.en,
+            styleName: source.names.fontSubfamily.en,
+            unitsPerEm: source.unitsPerEm,
+            ascender: source.ascender,
+            descender: source.descender,
+            glyphs: glyphs.glyphs
+        });
+        font.download();
+        const json = JSON.stringify(glyphs.map.forJson());
+        await writeFile('glyphs.json', json);
+    }
 })();
