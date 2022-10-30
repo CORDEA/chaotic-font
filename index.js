@@ -20,6 +20,27 @@ class GlyphMap extends Map {
     }
 }
 
+class FilteredGlyphs {
+    constructor(filtered, remaining) {
+        this.filtered = filtered;
+        this.remaining = remaining;
+    }
+}
+
+function filteredGlyphs(glyphs, filter) {
+    const source = [];
+    const remaining = [];
+    for (let i = 0; i < glyphs.length; i++) {
+        const c = glyphs.get(i);
+        if (filter(c)) {
+            source.push(c);
+            continue;
+        }
+        remaining.push(c);
+    }
+    return new FilteredGlyphs(source, remaining);
+}
+
 function randomizedIndices(length) {
     const result = [];
     while (result.length < length) {
@@ -32,41 +53,54 @@ function randomizedIndices(length) {
     return result;
 }
 
-function randomize(glyphs, isNatural) {
-    const source = [];
-    const remaining = [];
-    if (isNatural) {
-        for (let i = 0; i < glyphs.length; i++) {
-            const c = glyphs.get(i);
-            const u = c.unicode;
-            if (0x30 <= u && u <= 0x39 || 0x41 <= u && u <= 0x5a || 0x61 <= u && u <= 0x7a) {
-                source.push(c);
-                continue;
-            }
-            remaining.push(c);
-        }
-    } else {
-        source.push(...glyphs);
-    }
-
-    const indices = randomizedIndices(source.length);
+function randomize(glyphs, filter) {
+    const g = filteredGlyphs(glyphs, filter);
+    const filtered = g.filtered;
+    const indices = randomizedIndices(filtered.length);
     const result = [];
     const map = new GlyphMap();
-    for (let i = 0; i < source.length; i++) {
-        const c = source[i];
-        const r = source[indices[i]];
-        result.push(
-            new Glyph({
-                name: c.name,
-                unicode: c.unicode,
-                path: r.path,
-                advanceWidth: r.advanceWidth
-            })
-        );
+    for (let i = 0; i < filtered.length; i++) {
+        const c = filtered[i];
+        const r = filtered[indices[i]];
+        result.push(generateGlyph(c, r));
         map.set(c.name, r.name);
     }
-    result.push(...remaining);
+    result.push(...g.remaining);
     return new RandomizedGlyphs(result, map);
+}
+
+function fix(glyphs, filter, char) {
+    const g = filteredGlyphs(glyphs, filter);
+    const filtered = g.filtered;
+    const r = filtered[filtered.findIndex((v) => v.name === char)];
+    const result = [];
+    for (let i = 0; i < filtered.length; i++) {
+        const c = filtered[i];
+        result.push(generateGlyph(c, r));
+    }
+    result.push(...g.remaining);
+    return result;
+}
+
+function generateGlyph(source, path) {
+    return new Glyph({
+        name: source.name,
+        unicode: source.unicode,
+        path: path.path,
+        advanceWidth: path.advanceWidth
+    });
+}
+
+function outputFont(source, glyphs) {
+    const font = new Font({
+        familyName: source.names.fontFamily.en,
+        styleName: source.names.fontSubfamily.en,
+        unitsPerEm: source.unitsPerEm,
+        ascender: source.ascender,
+        descender: source.descender,
+        glyphs: glyphs
+    });
+    font.download();
 }
 
 (async function () {
@@ -96,16 +130,22 @@ function randomize(glyphs, isNatural) {
     }
 
     const source = await load(argv.font);
-    const glyphs = randomize(source.glyphs, argv._.includes('natural'));
-    const font = new Font({
-        familyName: source.names.fontFamily.en,
-        styleName: source.names.fontSubfamily.en,
-        unitsPerEm: source.unitsPerEm,
-        ascender: source.ascender,
-        descender: source.descender,
-        glyphs: glyphs.glyphs
-    });
-    font.download();
-    const json = JSON.stringify(glyphs.map.forJson());
-    await writeFile('glyphs.json', json);
+    let filter;
+    if (argv._.includes('random')) {
+        filter = (_) => true;
+    } else {
+        filter = (u) => {
+            const c = u.unicode;
+            return 0x30 <= c && c <= 0x39 || 0x41 <= c && c <= 0x5a || 0x61 <= c && c <= 0x7a;
+        };
+    }
+    if (argv.char) {
+        const glyphs = fix(source.glyphs, filter, argv.char);
+        outputFont(source, glyphs);
+    } else {
+        const glyphs = randomize(source.glyphs, filter);
+        outputFont(source, glyphs.glyphs);
+        const json = JSON.stringify(glyphs.map.forJson());
+        await writeFile('glyphs.json', json);
+    }
 })();
