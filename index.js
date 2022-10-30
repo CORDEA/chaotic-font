@@ -32,13 +32,14 @@ function randomizedIndices(length) {
     return result;
 }
 
-function randomize(glyphs, onlyAlphabet) {
+function randomize(glyphs, isNatural) {
     const source = [];
     const remaining = [];
-    if (onlyAlphabet) {
+    if (isNatural) {
         for (let i = 0; i < glyphs.length; i++) {
             const c = glyphs.get(i);
-            if (0x41 <= c.unicode && c.unicode <= 0x5a || 0x61 <= c.unicode && c.unicode <= 0x7a) {
+            const u = c.unicode;
+            if (0x30 <= u && u <= 0x39 || 0x41 <= u && u <= 0x5a || 0x61 <= u && u <= 0x7a) {
                 source.push(c);
                 continue;
             }
@@ -77,7 +78,7 @@ function randomize(glyphs, onlyAlphabet) {
                     type: 'string'
                 });
         })
-        .command('ascii <font>', 'Generate a font with randomized alphabet', function (yargs) {
+        .command('natural <font>', 'Generate a font with randomized letters [a-zA-Z0-9]', function (yargs) {
             return yargs
                 .option('char', {
                     alias: 'c'
@@ -95,7 +96,7 @@ function randomize(glyphs, onlyAlphabet) {
     }
 
     const source = await load(argv.font);
-    const glyphs = randomize(source.glyphs, argv._.includes('ascii'));
+    const glyphs = randomize(source.glyphs, argv._.includes('natural'));
     const font = new Font({
         familyName: source.names.fontFamily.en,
         styleName: source.names.fontSubfamily.en,
